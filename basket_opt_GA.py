@@ -4,6 +4,7 @@ import datetime
 import multiprocessing
 import time
 import itertools
+import numpy as np
 # starting time
 start = time.time()
 print("processing",multiprocessing.cpu_count())
@@ -14,32 +15,97 @@ store = pd.read_excel(r'C:\Users\user\PycharmProjects\basket_optimization\new_ba
 # setup data
 data = [(1,1,1,1,1)]
 
-def cal(basket, store):
+def cal(basket, stores):
     ind = 0
-    #print('store:',store['STORE'][0])
-   # print('basket:',basket)
-    # print(basket,stores)
     store_price = []
+    quantity_ = quantity.iloc[1].values
 
-    #for i in range(len(basket)):
     for i,j in enumerate(basket):
-        #print(store['STORE'][j-1])
-        store_ = store[store['STORE'] == j].values
-        #print('index:',i,'store_',store_[0])
-        col_name = "triggered_delivery"
-        index_no = store.columns.get_loc(col_name)
-       # print('index no',index_no)
-        store_array=store_[0][1:index_no]
-        store_price.append(store_array[i])
-    #print('store_price:',store_price)
-    quantity_=quantity.iloc[1].values
-    final_price=[i*j for i,j in zip(store_price,quantity_)]
-    sum_=sum(final_price)
-    #print('final_price:',final_price,'sum final_price:',sum_)
-    return sum_
+
+
+        if stores[0][0] == j:#store_:
+
+                #print('bas:',bas,'j:',j)
+
+                #print('index:',i,'store_',store_[0])
+                stores_=stores[0]
+               # print('stores_:',stores_)
+                col_name = "triggered_delivery"
+
+                index_no = store.columns.get_loc(col_name)
+
+
+               # print('index no',index_no)
+                store_array=stores_[1:index_no]
+              #  print('store_array:',store_array)
+                store_price.append(store_array[i] * quantity_[i])
+        else:
+                store_price.append(0)
+
+    return store_price#sum_
+def unique(list1):
+    x = np.array(list1)
+    return np.unique(x)
+
+def fitness(basket,store):
+    stores_=unique(basket)
+    li=[]
+    net = []
+    #stores=[[store.iloc[i].values for i in range(len(store))]]#[store[store['STORE'] == j].values for i, j in enumerate([2,1,1,2,2])]##
+
+    stores=[store[store['STORE'] == x].values for x in stores_]
+    #print('stores:',stores[0])
+
+    for i in stores:
+     #   print('store:',i)
+        for j in i:
+           # print('store j',j)
+            basket_store=cal(basket,[j])
+            #print('basket:',basket)
+            li.append([j[0],sum(basket_store)])
+    #return li
+    #print('li:',li)
+    for total in li:
+       # print('total of baskets:',total)
+        store_data=stores#store[store['STORE'] == total[0]].values
+        # print('total for store:',total[0])
+        # print('store_data:',store_data[0][0][0])
+
+        if total[1] > 0 and total[1]>= store_data[0][0][6]:
+            #print('store_data[0][6]:',store_data[0][6])
+            delivery = 0
+        elif total[1] > 0 and total[1] != store_data[0][0][6]:
+            #print('store_data[7]:', store_data[0][7])
+            delivery =  store_data[0][0][7]
+        else:
+            delivery=0#store_data[0][0][7]
+
+        # print('delivery:',delivery)
+        # print('store:',store_data[0][0])
+        # print('total:',total)
+        discount=0
+        if total[1] > store_data[0][0][8] and store_data[0][0][9] == 0:
+            dis=store_data[0][0][10]
+            disc=dis/100
+            discount=disc * total[1]
+        elif total[1] > store_data[0][0][8] and store_data[0][0][9] != 0:
+            discount=store_data[0][0][9]
+        elif total[1] < store_data[0][0][8]:
+            discount=0
+        #print('discount:',discount)
+        Net=total[1] + delivery - discount
+        net.append(Net)
+    tot=sum(net)
+
+
+
+
+    return tot
+
+
 
 def get_fitness(guess):
-    fitnes_value=cal(guess,store)
+    fitnes_value=fitness(guess,store)
     return fitnes_value
 
 def generate_parent(data,store):
